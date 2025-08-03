@@ -5,10 +5,10 @@ from torch.nn import functional as F
 
 class Block(nn.Module):
     #'Transformer Block'
-    def __init__(self,embed_dim,num_heads,block_size,p):
+    def __init__(self,embed_dim,heads,block_size,p):
         super().__init__()
-        head_size = embed_dim//num_heads
-        self.sa = MultiHeadedAttention(num_heads,head_size,p=p,block_size=block_size)
+        head_size = embed_dim//heads
+        self.sa = MultiHeadedAttention(num_heads = heads,head_size=head_size,p=p,block_size=block_size)
         self.ffwd = FeedForward(embed_dim,p)
         self.ln1 = nn.LayerNorm(embed_dim)
         self.ln2 = nn.LayerNorm(embed_dim)
@@ -17,14 +17,14 @@ class Block(nn.Module):
         x = x + self.ffwd(self.ln2(x))
         return x
 class BigramModel(nn.Module):
-  def __init__(self,vocab_size,embed_dim=32,block_size=8,n_layer=6,num_head=6,dropout=0.2,device='cpu'):
+  def __init__(self,vocab_size,embed_dim=32,block_size=8,n_layer=6,heads=6,dropout=0.2,device='cpu'):
     super(BigramModel,self).__init__()
     # each token directly reads off the logits for the next token from a lookup table 
     self.block_size = block_size
     self.embeddings = nn.Embedding(vocab_size,embed_dim)
     self.positional_embeddings = nn.Embedding(block_size,embed_dim)
     self.blocks = nn.Sequential(
-        *[Block(embed_dim=embed_dim,num_heads=num_head,p=dropout,block_size=block_size) for _ in range(n_layer)]
+        *[Block(embed_dim=embed_dim,heads=heads,block_size=block_size,p=dropout) for _ in range(n_layer)]
     )
     self.lm_head = nn.Linear(embed_dim,vocab_size)
     # self.mlp = FeedForward(embed_dim)
@@ -88,7 +88,7 @@ class Head(nn.Module):
 class MultiHeadedAttention(nn.Module):
   def __init__(self,num_heads,head_size,p,block_size=8):
     super().__init__()
-    self.heads = nn.ModuleList([Head(head_size,embed_dim=num_heads*head_size,block_size=block_size) for _ in range(num_heads)])
+    self.heads = nn.ModuleList([Head(head_size=head_size,p=p,embed_dim=num_heads*head_size,block_size=block_size) for _ in range(num_heads)])
     self.proj = nn.Linear(num_heads*head_size,num_heads*head_size)
     self.dropout = nn.Dropout(p)
   def forward(self,x):

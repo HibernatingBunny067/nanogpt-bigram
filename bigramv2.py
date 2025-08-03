@@ -2,17 +2,36 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+
+class Block(nn.Module):
+    #'Transformer Block'
+    def __init__(self,embed_dim,num_heads,block_size,p):
+        super().__init__()
+        head_size = embed_dim//num_heads
+        self.sa = MultiHeadedAttention(num_heads,head_size,p=p,block_size=block_size)
+        self.ffwd = FeedForward(embed_dim,p)
+        self.ln1 = nn.LayerNorm(embed_dim)
+        self.ln2 = nn.LayerNorm(embed_dim)
+    def forward(self,x):
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
+        return x
 class BigramModel(nn.Module):
-  def __init__(self,vocab_size,embed_dim=32,block_size=8,device='cpu'):
+  def __init__(self,vocab_size,embed_dim=32,block_size=8,dropout=0.2,device='cpu'):
     super(BigramModel,self).__init__()
     # each token directly reads off the logits for the next token from a lookup table 
     self.block_size = block_size
-    
     self.embeddings = nn.Embedding(vocab_size,embed_dim)
     self.positional_embeddings = nn.Embedding(block_size,embed_dim)
-    self.sa_head = MultiHeadedAttention(4,embed_dim//4)
+    self.blocks = nn.Sequential(
+        # Block(embed_dim,num_heads =4),
+        # Block(embed_dim,num_heads =4),
+        # Block(embed_dim,num_heads =4),
+        # nn.LayerNorm(embed_dim),
+        *[Block(embed_dim,num_head=num_head,p=dropout,block_size=block_size) for _ in range(n_layer)]
+    )
     self.lm_head = nn.Linear(embed_dim,vocab_size)
-    self.mlp = FeedForward(embed_dim)
+    # self.mlp = FeedForward(embed_dim)
     self.device = device
   
   def forward(self,idx,targets=None):
@@ -21,8 +40,7 @@ class BigramModel(nn.Module):
     tok_emb = self.embeddings(idx) #(B,T,C)
     pos_emb = self.positional_embeddings(torch.arange(T,device=self.device)) #(T,C)
     x = tok_emb+pos_emb # (B,T,C)
-    x = self.sa_head(x)
-    x = self.mlp(x)
+    x = self.blocks(x)
     logits = self.lm_head(x)
     if targets is None:
       loss = None
@@ -51,38 +69,45 @@ class BigramModel(nn.Module):
     return idx
 
 class Head(nn.Module):
-  def __init__(self,head_size,embed_dim=32,block_size=8):
+  def __init__(self,head_size,p,embed_dim=32,block_size=8):
     super().__init__()
     self.key = nn.Linear(embed_dim,head_size,bias=False)
     self.query = nn.Linear(embed_dim,head_size,bias=False)
     self.value = nn.Linear(embed_dim,head_size,bias=False)
     self.register_buffer('tril',torch.tril(torch.ones(block_size,block_size)))
 
+    self.dropout = nn.Dropout(p)
   def forward(self,x):
     B,T,C = x.shape
     key = self.key(x)
     query = self.query(x)
-
     wei = query @ key.transpose(-2,-1) * C**-0.5
     wei =wei.masked_fill(self.tril[:T,:T]==0,float("-inf"))
     wei = F.softmax(wei,dim=-1)
+    wei = self.dropout(wei)
     v = self.value(x)
     out = wei @ v
     return out 
 
 class MultiHeadedAttention(nn.Module):
-  def __init__(self,num_heads,head_size):
+  def __init__(self,num_heads,head_size,p,block_size=8):
     super().__init__()
-    self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+    self.heads = nn.ModuleList([Head(head_size,embed_dim=num_heads*head_size,block_size=block_size) for _ in range(num_heads)])
+    self.proj = nn.Linear(num_heads*head_size,num_heads*head_size)
+    self.dropout = nn.Dropout(p)
   def forward(self,x):
-    return torch.cat([h(x) for h in self.head],dim=-1)
+    out = torch.cat([h(x) for h in self.head],dim=-1)
+    out = self.proj(out)
+    return out 
 
 class FeedForward(nn.Module):
-  def __init__(self,embed_dim):
+  def __init__(self,embed_dim,p):
     super().__init__()
     self.net = nn.Sequential(
-      nn.Linear(embed_dim,embed_dim),
+      nn.Linear(embed_dim,4*embed_dim),
       nn.ReLU(),
+      nn.Linear(4*embed_dim,embed_dim),
+      nn.Dropout(p)
     )
   def forward(self,x):
     return self.net(x)

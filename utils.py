@@ -20,3 +20,7 @@ class batched_sampling():
     x = torch.stack([data[i:i+self.block_size] for i in ix]) # inputs 
     y = torch.stack([data[i+1:i+self.block_size+1] for i in ix]) # targets (offset by 1 for x)
     return x,y 
+
+@torch.no_grad
+def estimate_loss():
+  pass

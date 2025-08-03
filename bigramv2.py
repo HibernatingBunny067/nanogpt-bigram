@@ -24,11 +24,7 @@ class BigramModel(nn.Module):
     self.embeddings = nn.Embedding(vocab_size,embed_dim)
     self.positional_embeddings = nn.Embedding(block_size,embed_dim)
     self.blocks = nn.Sequential(
-        # Block(embed_dim,num_heads =4),
-        # Block(embed_dim,num_heads =4),
-        # Block(embed_dim,num_heads =4),
-        # nn.LayerNorm(embed_dim),
-        *[Block(embed_dim,num_heads=num_head,p=dropout,block_size=block_size) for _ in range(n_layer)]
+        *[Block(embed_dim=embed_dim,num_heads=num_head,p=dropout,block_size=block_size) for _ in range(n_layer)]
     )
     self.lm_head = nn.Linear(embed_dim,vocab_size)
     # self.mlp = FeedForward(embed_dim)

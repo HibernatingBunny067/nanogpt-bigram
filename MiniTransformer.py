@@ -16,9 +16,9 @@ class Block(nn.Module):
         x = x + self.sa(self.ln1(x))
         x = x + self.ffwd(self.ln2(x))
         return x
-class BigramModel(nn.Module):
+class Transformer(nn.Module):
   def __init__(self,vocab_size,embed_dim=32,block_size=8,n_layer=6,heads=6,dropout=0.2,device='cpu'):
-    super(BigramModel,self).__init__()
+    super(Transformer,self).__init__()
     # each token directly reads off the logits for the next token from a lookup table 
     self.block_size = block_size
     self.embeddings = nn.Embedding(vocab_size,embed_dim)

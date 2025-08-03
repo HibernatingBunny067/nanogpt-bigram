@@ -92,8 +92,9 @@ class MultiHeadedAttention(nn.Module):
     self.proj = nn.Linear(num_heads*head_size,num_heads*head_size)
     self.dropout = nn.Dropout(p)
   def forward(self,x):
-    out = torch.cat([h(x) for h in self.head],dim=-1)
+    out = torch.cat([h(x) for h in self.heads],dim=-1)
     out = self.proj(out)
+    out = self.dropout(out)
     return out 
 
 class FeedForward(nn.Module):

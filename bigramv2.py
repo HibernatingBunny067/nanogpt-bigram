@@ -17,7 +17,7 @@ class Block(nn.Module):
         x = x + self.ffwd(self.ln2(x))
         return x
 class BigramModel(nn.Module):
-  def __init__(self,vocab_size,embed_dim=32,block_size=8,dropout=0.2,device='cpu'):
+  def __init__(self,vocab_size,embed_dim=32,block_size=8,n_layer=6,dropout=0.2,device='cpu'):
     super(BigramModel,self).__init__()
     # each token directly reads off the logits for the next token from a lookup table 
     self.block_size = block_size

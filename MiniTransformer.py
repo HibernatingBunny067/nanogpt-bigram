@@ -109,7 +109,7 @@ class MultiHeadedAttention(nn.Module):
     #since self.embed_dim = self.num_heads*self.head_size
     self.key = nn.Linear(self.embed_dim,self.embed_dim,bias=False)
     self.query = nn.Linear(self.embed_dim,self.embed_dim,bias=False)
-    self.vale = nn.Linear(self.embed_dim,self.embed_dim,bias=False)
+    self.value = nn.Linear(self.embed_dim,self.embed_dim,bias=False)
 
     self.register_buffer('tril',torch.tril(torch.ones(self.block_size,self.block_size)))
     self.dropout = nn.Dropout(p)

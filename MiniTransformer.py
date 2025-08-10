@@ -128,7 +128,7 @@ class MultiHeadedAttention(nn.Module):
     wei = F.softmax(wei,dim=-1)
     wei = self.dropout(wei)
 
-    out = wei @ v # B,num_heads,T,head_size
+    out = wei @ value # B,num_heads,T,head_size
     out = out.transpose(1,2).contigous().view(B,T,C) ## B,T,num_heads*head_size
     out = self.proj(out)
     return out 

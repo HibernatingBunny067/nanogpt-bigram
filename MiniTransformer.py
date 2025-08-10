@@ -126,7 +126,7 @@ class MultiHeadedAttention(nn.Module):
     wei = (query @ key.transpose(-2,-1)) * (self.head_size ** -0.5)
     wei = wei.masked_fill(self.tril[:T,:T]==0,float("-inf"))
     wei = F.softmax(wei,dim=-1)
-    wei = wei.dropout(wei)
+    wei = self.dropout(wei)
 
     out = wei @ v # B,num_heads,T,head_size
     out = out.transpose(1,2).contigous().view(B,T,C) ## B,T,num_heads*head_size
